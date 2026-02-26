@@ -34,7 +34,7 @@ def to_connectome(test_path,out_path):
             if not os.path.exists(out_path):
                 os.makedirs(out_path, exist_ok=True)
 
-            new_corr.to_csv(os.path.join(out_path, filename))
+            new_corr.to_csv(os.path.join(out_path, "cm_" + filename))
         
         time.sleep(0.01)
 
