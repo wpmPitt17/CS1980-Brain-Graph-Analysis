@@ -84,7 +84,7 @@ int main(int argc, char **argv){
     cout << "Successfully Created " << data_File << " For Ranger" << endl;
 
 
-    string ranger_cmd = "/home/rhonda/Downloads/capstone/ranger/cpp_version/build/ranger "
+    string ranger_cmd = "/home/rhonda/Downloads/capstone/ranger/cpp_version/build/ranger " //Path to ranger executable
                     "--file connectome_data.dat --depvarname Diagnosis "
                     "--treetype 1 --ntree 1000 --nthreads 4 --impmeasure 1 --verbose";
 
