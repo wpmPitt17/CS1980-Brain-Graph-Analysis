@@ -7,7 +7,7 @@
 Networkify
 
 This is the primary script for transforming edge lists of processed fMRI data from subjects into 
-adjacency lists providing methods to construct these structures for analysis of subnetworks in brain connectomes.
+adjacency lists providing methods to construct these structures for analysis of subnetworks and classification in brain connectomes.
 """
 
 #Imports
@@ -19,6 +19,11 @@ from tqdm import tqdm
 import time
 
 def to_connectome(test_path,out_path):
+    """
+    This method generates a complete list of weighted edge values for use in machine learning processes.
+    """
+    
+    #Checks that the input path is a valid address before pulling
     if not os.path.exists(test_path):
         print('Invalid input file path.')
         return
