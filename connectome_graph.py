@@ -111,13 +111,13 @@ LOBE_MAP = {
 }
 
 LOBE_COLORS = {
-    'Frontal':     '#4A90D9',
-    'Temporal':    '#E07040',
-    'Parietal':    '#4CAF7D',
-    'Occipital':   '#C9A227',
-    'Cingulate':   '#9B72CF',
-    'Subcortical': '#E05585',
-    'Other':       '#999999',
+    'Frontal':     "#005EC1",
+    'Temporal':    "#C64007",
+    'Parietal':    "#0B9650",
+    'Occipital':   "#A98100",
+    'Cingulate':   "#3F0092",
+    'Subcortical': "#920033",
+    'Other':       "#311D1D",
 }
 
 def get_lobe(roi):
