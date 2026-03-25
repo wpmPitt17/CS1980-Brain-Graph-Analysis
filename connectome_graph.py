@@ -17,27 +17,6 @@ import os
 import pandas as pd
 import py4cytoscape as p4c
 
-# C++ engine -- built from connectome_engine.cpp via CMakeLists.txt
-# Provides: run(), pearson_r(), parse_1D()
-try:
-    import connectome_engine
-    ENGINE_AVAILABLE = True
-except ImportError:
-    ENGINE_AVAILABLE = False
-    print("Warning: connectome_engine not found. Build it first with CMakeLists.txt.")
-
-# C++ engine -- built from connectome_engine.cpp via CMakeLists.txt
-# Provides: run(), pearson_r(), parse_1D()
-try:
-    import connectome_engine
-    ENGINE_AVAILABLE = True
-except ImportError:
-    ENGINE_AVAILABLE = False
-    print("Warning: connectome_engine not found. Build it first with CMakeLists.txt.")
-import os
-import pandas as pd
-import py4cytoscape as p4c
-
 # ------------------------------------------------------------
 # Harvard-Oxford atlas (rois_ho, 112 regions)
 # ROI index -> anatomical region name
@@ -111,13 +90,13 @@ LOBE_MAP = {
 }
 
 LOBE_COLORS = {
-    'Frontal':     "#005EC1",
-    'Temporal':    "#C64007",
-    'Parietal':    "#0B9650",
-    'Occipital':   "#A98100",
-    'Cingulate':   "#3F0092",
-    'Subcortical': "#920033",
-    'Other':       "#311D1D",
+    'Frontal':     '#4A90D9',
+    'Temporal':    '#E07040',
+    'Parietal':    '#4CAF7D',
+    'Occipital':   '#C9A227',
+    'Cingulate':   '#9B72CF',
+    'Subcortical': '#E05585',
+    'Other':       '#999999',
 }
 
 def get_lobe(roi):
@@ -268,42 +247,7 @@ def main():
                         help='Disease/condition label for graph title (default: Condition)')
     parser.add_argument('--layout',          type=str, default='force-directed',
                         help='Cytoscape layout name (default: force-directed)')
-    # Engine args -- only needed if running the C++ pipeline before graphing
-    parser.add_argument('--run-engine',      action='store_true',
-                        help='Run the C++ connectome engine before graphing')
-    parser.add_argument('--asd-path',        type=str, default='',
-                        help='Path to ASD .1D files (required if --run-engine)')
-    parser.add_argument('--con-path',        type=str, default='',
-                        help='Path to Control .1D files (required if --run-engine)')
-    parser.add_argument('--ranger-path',     type=str, default='',
-                        help='Path to Ranger executable (required if --run-engine)')
-    parser.add_argument('--ntree',           type=int, default=1000,
-                        help='Number of trees for Ranger (default: 1000)')
-    parser.add_argument('--nthreads',        type=int, default=4,
-                        help='Number of threads for Ranger (default: 4)')
     args = parser.parse_args()
-
-    # Optionally run the C++ engine first to generate the importance file
-    if args.run_engine:
-        if not ENGINE_AVAILABLE:
-            print("Error: connectome_engine module not built. See CMakeLists.txt.")
-            return
-        if not args.asd_path or not args.con_path or not args.ranger_path:
-            print("Error: --asd-path, --con-path, and --ranger-path are required with --run-engine.")
-            return
-        print("Running C++ connectome engine...")
-        result = connectome_engine.run(
-            asd_path    = args.asd_path,
-            con_path    = args.con_path,
-            ranger_path = args.ranger_path,
-            ntree       = args.ntree,
-            nthreads    = args.nthreads,
-            verbose     = True,
-        )
-        print(f"  Engine finished: {result['subjects_written']} subjects, status={result['ranger_status']}")
-        if not result['success']:
-            print("Error: Ranger failed. Check output above.")
-            return
 
     if not os.path.exists(args.input):
         print(f"Error: Input file not found: {args.input}")
