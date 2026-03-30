@@ -13,16 +13,19 @@ from sklearn.model_selection import KFold
 from sklearn.neighbors import KNeighborsClassifier
 
 # Path directory for all test and output files
-test_path = './data/1D'
-asd_path = 'ASD/Outputs/cpac/filt_global/rois_ho'
-control_path = 'Control/Outputs/cpac/filt_global/rois_ho'
+train_path = './data/ML/Train'
+test_path = './data/ML/Test'
+subject_path = 'asd'
+control_path = 'control'
 
 out_path = './output_correlation'
 out_control = 'output_control'
 out_asd = 'output_asd'
 
-rows = []
-labels = []
+train_rows = []
+train_labels = []
+test_rows = []
+test_labels = []
 
 # DX_GROUP 0 = Autism, 1 = Control
 
@@ -32,24 +35,49 @@ if not os.path.exists(out_path):
 if not os.path.exists(os.path.join(out_path, out_asd)):
     os.makedirs(os.path.join(out_path, out_asd), exist_ok=True)
 
-
 if not os.path.exists(os.path.join(out_path, out_control)):
     os.makedirs(os.path.join(out_path, out_control), exist_ok=True)
 
 # For DX_GROUP 1
-for filename in os.listdir(os.path.join(test_path, asd_path)):
-    file_path = os.path.join(test_path, asd_path, filename)
+for filename in os.listdir(os.path.join(train_path, subject_path)):
+    file_path = os.path.join(train_path, subject_path, filename)
 
     with open(file_path, 'r') as f:
         df = pd.read_csv(f, sep=r'\s+') 
         new_corr = df.corr(method='spearman')
         # Flatten correlation to 1d using upper triangle of matrix
-        upper_triangle = new_corr.values[np.triu_indices(111, k=1)]
-        rows.append(upper_triangle)
-        labels.append(0)
+        upper_triangle = new_corr.values[np.triu_indices(200, k=1)]
+        train_rows.append(upper_triangle)
+        train_labels.append(0)
         new_corr.to_csv(os.path.join(out_path, out_asd, filename))
 
 # For DX_GROUP 2
+for filename in os.listdir(os.path.join(train_path, control_path)):
+    file_path = os.path.join(train_path, control_path, filename)
+
+    with open(file_path, 'r') as f:
+        df = pd.read_csv(f, sep=r'\s+') 
+        new_corr = df.corr(method='spearman')
+        # Flatten correlation to 1d using upper triangle of matrix
+        upper_triangle = new_corr.values[np.triu_indices(200, k=1)]
+        train_rows.append(upper_triangle)
+        train_labels.append(1)
+        new_corr.to_csv(os.path.join(out_path, out_control, filename))
+
+# For Test_GROUP 1
+for filename in os.listdir(os.path.join(test_path, subject_path)):
+    file_path = os.path.join(test_path, subject_path, filename)
+
+    with open(file_path, 'r') as f:
+        df = pd.read_csv(f, sep=r'\s+') 
+        new_corr = df.corr(method='spearman')
+        # Flatten correlation to 1d using upper triangle of matrix
+        upper_triangle = new_corr.values[np.triu_indices(200, k=1)]
+        test_rows.append(upper_triangle)
+        test_labels.append(0)
+        new_corr.to_csv(os.path.join(out_path, out_asd, filename))
+
+# For Test_GROUP 2
 for filename in os.listdir(os.path.join(test_path, control_path)):
     file_path = os.path.join(test_path, control_path, filename)
 
@@ -57,16 +85,16 @@ for filename in os.listdir(os.path.join(test_path, control_path)):
         df = pd.read_csv(f, sep=r'\s+') 
         new_corr = df.corr(method='spearman')
         # Flatten correlation to 1d using upper triangle of matrix
-        upper_triangle = new_corr.values[np.triu_indices(111, k=1)]
-        rows.append(upper_triangle)
-        labels.append(1)
+        upper_triangle = new_corr.values[np.triu_indices(200, k=1)]
+        test_rows.append(upper_triangle)
+        test_labels.append(1)
         new_corr.to_csv(os.path.join(out_path, out_control, filename))
 
-X = np.array(rows) 
-y = np.array(labels)
+X_train = np.array(train_rows) 
+y_train = np.array(train_labels)
 
-# Define Features of the Data and do train test split
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=0, stratify=y, shuffle=True)
+X_test = np.array(test_rows) 
+y_test = np.array(test_labels)
 
 X_test = np.nan_to_num(X_test)
 X_train = np.nan_to_num(X_train)
