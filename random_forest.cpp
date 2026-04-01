@@ -86,7 +86,7 @@ int main(int argc, char **argv){
 
     string ranger_cmd = "/home/rhonda/Downloads/capstone/ranger/cpp_version/build/ranger " //Path to ranger executable
                     "--file connectome_data.dat --depvarname Diagnosis "
-                    "--treetype 1 --ntree 1000 --nthreads 4 --impmeasure 1 --verbose";
+                    "--treetype 1 --ntree 2000 --mtry 500 --samplefraction --impmeasure 2 --nthreads 16 --verbose";
 
     cout << "Starting Ranger Random Forest..." << endl;
     int status = system(ranger_cmd.c_str());
