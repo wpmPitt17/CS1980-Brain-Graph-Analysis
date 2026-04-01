@@ -5,7 +5,7 @@ import pandas as pd
 import seaborn as sns
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, confusion_matrix, classification_report, homogeneity_score, completeness_score, v_measure_score
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report, homogeneity_score, completeness_score, v_measure_score, ConfusionMatrixDisplay
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
@@ -73,7 +73,7 @@ X_train = np.nan_to_num(X_train)
 
 # Scaler for standardizing features
 scaler = StandardScaler()
-pca = PCA(n_components=20)
+pca = PCA(n_components=None)
 
 # Reduce dimensionality of data for more efficient processing and reduce noise
 X_train_scaled = scaler.fit_transform(X_train)
@@ -101,11 +101,14 @@ print(f"Logistic Regression Accuracy: {accuracy_score(y_test, y_pred):.4f}")
 print(f"Logistic Regression Accuracy Scaled: {accuracy_score(y_test, y_pred_scaled):.4f}")
 print(f"Logistic Regression Accuracy PCA: {accuracy_score(y_test, y_pred_pca):.4f}")
 
-print(f"Logistic Regression Report: {classification_report(y_test, y_pred, target_names=["ASD", "Control"])}")
+print(f"Logistic Regression Report:\n {classification_report(y_test, y_pred, target_names=["ASD", "Control"])}")
 print(f"Logistic Regression Report Scaled: {classification_report(y_test, y_pred_scaled, target_names=["ASD", "Control"])}")
 print(f"Logistic Regression Report PCA: {classification_report(y_test, y_pred_pca, target_names=["ASD", "Control"])}")
 
 print(f"Logistic Regression Confusion: {confusion_matrix(y_test, y_pred)}")
+# disp = ConfusionMatrixDisplay(confusion_matrix=confusion_matrix(y_test, y_pred), display_labels=["ASD", "Control"])
+# disp.plot(cmap=plt.cm.Blues)
+# plt.show()
 print(f"Logistic Regression Confusion Scaled: {confusion_matrix(y_test, y_pred_scaled)}")
 print(f"Logistic Regression Confusion PCA: {confusion_matrix(y_test, y_pred_pca)}")
 
@@ -113,7 +116,12 @@ print(f"Logistic Regression Confusion PCA: {confusion_matrix(y_test, y_pred_pca)
 kmeans = KMeans(n_clusters=2, random_state=0, n_init="auto")
 cluster_labels = kmeans.fit_predict(X_train_pca)
 
-cluster_labels_named = np.array(["ASD" if c == 0 else "Control" for c in cluster_labels])
+# Check both labels and pick the better one
+acc_as_is = accuracy_score(y_train, cluster_labels)
+acc_flipped = accuracy_score(y_train, 1 - cluster_labels)
+kmeans_mapped = cluster_labels if acc_as_is >= acc_flipped else 1 - cluster_labels
+
+cluster_labels_named = np.array(["ASD" if c == 0 else "Control" for c in kmeans_mapped])
 
 print(kmeans)
 sns.scatterplot(x=X_train_pca[:, 0], y=X_train_pca[:, 1], hue=cluster_labels_named, hue_order=["ASD", "Control"])
@@ -123,15 +131,19 @@ plt.ylabel("PCA Component 2")
 plt.show()
 
 # KMeans metrics
-kmeans_mapped = cluster_labels
 kmeans_accuracy = accuracy_score(y_train, kmeans_mapped)
 print(f"KMeans Accuracy: {kmeans_accuracy:.4f}")
 print(f"Homogeneity: {homogeneity_score(y_train, cluster_labels):.4f}")
 print(f"Completeness: {completeness_score(y_train, cluster_labels):.4f}")
 print(f"V-measure: {v_measure_score(y_train, cluster_labels):.4f}")
 print(classification_report(y_train, kmeans_mapped, target_names=["ASD", "Control"]))
-
+# print(pca.components_)
 # KNN (try numerous k)
+for k in range(3, 15, 2):
+    neighbor = KNeighborsClassifier(n_neighbors=k, algorithm='auto')
+    neighbor.fit(X_train, y_train)
+    # print(neighbor.predict_proba(X_test))
+    print(f"KNN Score: {neighbor.score(X_test, y_test)}")
 for k in range(3, 15, 2):
     neighbor = KNeighborsClassifier(n_neighbors=k, algorithm='auto')
     neighbor.fit(X_train_scaled, y_train)
@@ -141,3 +153,5 @@ for k in range(3, 15, 2):
     neighbor_pca = KNeighborsClassifier(n_neighbors=k, algorithm='auto')
     neighbor_pca.fit(X_train_pca, y_train)
     print(f"KNN Score PCA: {neighbor_pca.score(X_test_pca, y_test)}")
+
+# Linear Discriminant Analysis
