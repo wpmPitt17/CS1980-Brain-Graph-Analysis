@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import ConfusionMatrixDisplay, accuracy_score, confusion_matrix, classification_report, homogeneity_score, completeness_score, v_measure_score
 from sklearn.cluster import KMeans
@@ -35,10 +35,11 @@ def main():
 
     X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca, X_test_pca = split(train_rows, train_labels, test_rows, test_labels)
 
-    logistic_regression(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca, X_test_pca)
-    kmean(X_train_pca, y_train)
-    knn(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca,X_test_pca)
-    kfoldLR()
+    #logistic_regression(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca, X_test_pca)
+    #kmean(X_train_pca, y_train)
+    #knn(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca,X_test_pca)
+    #kfoldLR()
+    finetuneLR()
 
 
 def check_dirs(out_path, out_asd, out_control):
@@ -249,6 +250,41 @@ def kfoldLR():
     print(f"{k}-Fold Cross Validation Scaled Logistic Regression\nMean Accuracy: {mean_accuracy_scaled / k}") 
     print(f"{k}-Fold Cross Validation Logistic Regression with RFE\nMean Accuracy: {mean_accuracy_rfe / k}") 
 
+    print('===========================')
+
+def finetuneLR():
+    print('===========================\nParameter Fine-Tuning Logistic Regression Metrics\n===========================')
+    all_data = collect_all_subjects()
+
+    dataX = np.array(all_data[0])
+    dataY = np.array(all_data[1])
+
+    dataX = np.nan_to_num(dataX)
+
+    mean_accuracy_norm = 0
+    mean_accuracy_scaled = 0
+
+    param_grid = {'C' : [0.001,0.01,0.1,1,10,100,1000]}
+
+    clf = GridSearchCV(LogisticRegression(max_iter=2000), param_grid)
+    clf.fit(dataX,dataY)
+
+    # Logistic regression and average accuracy based on scaled values
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(dataX)
+
+
+    clf_scaled = GridSearchCV(LogisticRegression(max_iter=2000),param_grid)
+    clf_scaled.fit(X_train_scaled,dataY)
+
+    print("Logistic Regression with Grid Search Parameter Optimization")
+    print(clf.best_estimator_)
+    print(clf.best_params_)
+    print(clf.best_score_)
+    print("Logistic Regression with Grid Search Parameter Optimization and Scaled")
+    print(clf_scaled.best_estimator_)
+    print(clf_scaled.best_params_)
+    print(clf_scaled.best_score_)
     print('===========================')
 
 def collect_all_subjects():
