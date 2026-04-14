@@ -5,7 +5,7 @@ import pandas as pd
 import seaborn as sns
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, confusion_matrix, classification_report, homogeneity_score, completeness_score, v_measure_score
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report, homogeneity_score, completeness_score, v_measure_score, ConfusionMatrixDisplay
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
@@ -129,11 +129,15 @@ print(f"Logistic Regression Accuracy: {accuracy_score(y_test, y_pred):.4f}")
 print(f"Logistic Regression Accuracy Scaled: {accuracy_score(y_test, y_pred_scaled):.4f}")
 print(f"Logistic Regression Accuracy PCA: {accuracy_score(y_test, y_pred_pca):.4f}")
 
-print(f"Logistic Regression Report: {classification_report(y_test, y_pred, target_names=["ASD", "Control"])}")
-print(f"Logistic Regression Report Scaled: {classification_report(y_test, y_pred_scaled, target_names=["ASD", "Control"])}")
-print(f"Logistic Regression Report PCA: {classification_report(y_test, y_pred_pca, target_names=["ASD", "Control"])}")
+print(f"Logistic Regression Report: {classification_report(y_test, y_pred, target_names=['asd', 'Control'])}")
+print(f"Logistic Regression Report Scaled: {classification_report(y_test, y_pred_scaled, target_names=['asd', 'Control'])}")
+print(f"Logistic Regression Report PCA: {classification_report(y_test, y_pred_pca, target_names=['asd', 'Control'])}")
 
 print(f"Logistic Regression Confusion: {confusion_matrix(y_test, y_pred)}")
+disp = ConfusionMatrixDisplay(confusion_matrix=confusion_matrix(y_test, y_pred), display_labels=["ASD", "Control"])
+disp.plot(cmap=plt.cm.Blues)
+plt.show()
+
 print(f"Logistic Regression Confusion Scaled: {confusion_matrix(y_test, y_pred_scaled)}")
 print(f"Logistic Regression Confusion PCA: {confusion_matrix(y_test, y_pred_pca)}")
 
@@ -157,7 +161,7 @@ print(f"KMeans Accuracy: {kmeans_accuracy:.4f}")
 print(f"Homogeneity: {homogeneity_score(y_train, cluster_labels):.4f}")
 print(f"Completeness: {completeness_score(y_train, cluster_labels):.4f}")
 print(f"V-measure: {v_measure_score(y_train, cluster_labels):.4f}")
-print(classification_report(y_train, kmeans_mapped, target_names=["ASD", "Control"]))
+print(classification_report(y_train, kmeans_mapped, target_names=['ASD', 'Control']))
 
 # KNN (try numerous k)
 for k in range(3, 15, 2):
