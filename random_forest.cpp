@@ -12,152 +12,134 @@ using namespace std;
 namespace fs = std::filesystem;
 
 /*
-this module is to do the random forest analysis on the 
-connectome sub-graph networks in order to be able to map
-what regions of the brain are affected by certain disorders
-so that we can target them with certain drugs
+Written by: Rhonda Ojongmboh
+Module: Random Forest analysis on connectome sub-graph networks.
+Goal: Map brain regions affected by disorders for drug targeting.
 */ 
 
-// .1D file processor
+// Function Prototypes
 vector<vector<double>> parse_1D(string filePath, int COLS);
-// Get number of colums
 int get_cols(string filePath);
-// Pearson correlation metric calculator
-double pearson_r(vector<double> col_A, vector<double> col_B);
-// Write each file from the ASD and Control
+double pearson_r(const vector<double>& col_A, const vector<double>& col_B);
 void write_row(ofstream &outFile, string file_Path, int target, int COLS);
 
-
-
-int main(int argc, char **argv){
-
-    // path to target folder
-    string asd_path = "/home/rhonda/Downloads/capstone/Brain-Analysis/data/1D/ASD/Outputs/cpac/filt_global/rois_ho";
-    // path to control folder
-    string con_path = "/home/rhonda/Downloads/capstone/Brain-Analysis/data/1D/Control/Outputs/cpac/filt_global/rois_ho";
-    string data_File = "connectome_data.dat";
-    int COLS = -1; 
-
-    vector<pair<string, int>> my_files; // {filepath, target}
-
-    // Add ASD Folder to my_file vector Target = 1
-    for(const auto &entry : fs::directory_iterator(asd_path)){
-        if (entry.path().extension() == ".1D"){
-            my_files.push_back({entry.path().string(), 1});
-        }
-    }
-
-    // Add Control Folder to my_file vector Target = 0
-    for (const auto& entry : fs::directory_iterator(con_path)){
-        if (entry.path().extension() == ".1D"){
-            my_files.push_back({entry.path().string(), 0});
-        }
-    }
-
-    // Determine the columns
-    if(!my_files.empty()){
-        COLS = get_cols(my_files[0].first);
-    }
-
-    if(COLS <= 0){
-        cerr << "Cannot Determine Number of Columns" << endl;
-        return -1;
-    }
-
-    ofstream outFile(data_File);    
-
-    // Create the Header for Ranger
-    for (int i = 0; i < COLS; i++) {
-        for (int j = i + 1; j < COLS; j++) {
-            outFile << "ROI" << i << "_ROI" << j << ",";
-        }
-    }
-    outFile << "Diagnosis\n" << endl;
-
-    // Write all rows
-
-    cout << "Processing" << endl;
-    for(auto &[path, target] : my_files){
-        write_row(outFile, path, target, COLS);
-    }
-    outFile.close();
-    cout << "Successfully Created " << data_File << " For Ranger" << endl;
-
-
-    string ranger_cmd = "/home/rhonda/Downloads/capstone/ranger/cpp_version/build/ranger " //Path to ranger executable
-                    "--file connectome_data.dat --depvarname Diagnosis "
-                    "--treetype 1 --ntree 1000 --nthreads 4 --impmeasure 1 --verbose";
-
-    cout << "Starting Ranger Random Forest..." << endl;
-    int status = system(ranger_cmd.c_str());
-
-    if (status == 0) {
-        cout << "Ranger finished successfully. Check ranger_importance.out for results!" << endl;
-    }
-    return 0;
-}
-
-vector<vector<double>> parse_1D(string filePath, int COLS){
-
-    ifstream file(filePath);
-    string line;
-    if(!file.is_open()){
-        cerr << "Error Opening File! Empty Matrix Returned" << endl;
-        return {};
-    }
+int main(int argc, char **argv) {
+    // Path Definition
+    string asd_path_test = "/home/rhonda/Downloads/capstone/Brain-Analysis/data/ML/Test/asd";
+    string con_path_test = "/home/rhonda/Downloads/capstone/Brain-Analysis/data/ML/Test/control";
     
-    // Discard the header line
-    getline(file, line);
+    string asd_path_train = "/home/rhonda/Downloads/capstone/Brain-Analysis/data/ML/Train/asd";
+    string con_path_train = "/home/rhonda/Downloads/capstone/Brain-Analysis/data/ML/Train/control";
 
-    vector<vector<double>> res(COLS);
+    string data_File_test = "connectome_data_test.dat";
+    string data_File_train = "connectome_data_train.dat";
 
-    while(getline(file, line)){
-        if(line.empty()) continue;
-
-        istringstream ss(line);
-        double val;
-        int col_index = 0;
+    // Helper to process a specific set (Train or Test)
+    auto process_set = [&](string output_filename, string asd_dir, string con_dir) {
+        vector<pair<string, int>> files;
         
-        // Append the values to the correct column vector
-        while(ss >> val){
-            if(col_index < COLS){
-                res[col_index].push_back(val);
-                col_index++;
+        cout << "\n--- Processing Folder: " << asd_dir << " ---" << endl;
+        for (const auto &entry : fs::directory_iterator(asd_dir)) {
+            if (entry.path().extension() == ".1D") {
+                files.push_back({entry.path().string(), 1});
             }
         }
 
+        cout << "--- Processing Folder: " << con_dir << " ---" << endl;
+        for (const auto &entry : fs::directory_iterator(con_dir)) {
+            if (entry.path().extension() == ".1D") {
+                files.push_back({entry.path().string(), 0});
+            }
+        }
+
+        if(files.empty()) return;
+
+        // Determine columns from the first file found in this set
+        int COLS = get_cols(files[0].first);
+        if(COLS <= 0) return;
+
+        ofstream outFile(output_filename);
+        // Create Header
+        for (int i = 0; i < COLS; i++) {
+            for (int j = i + 1; j < COLS; j++) {
+                outFile << "ROI" << i << "_ROI" << j << ",";
+            }
+        }
+        outFile << "Diagnosis\n";
+
+        // Write Rows
+        cout << "Writing " << files.size() << " subjects to " << output_filename << "..." << endl;
+        for (auto &[path, target] : files) {
+            write_row(outFile, path, target, COLS);
+        }
+        outFile.close();
+    };
+
+    // Generate the Training and Testing data files
+    process_set(data_File_train, asd_path_train, con_path_train);
+    process_set(data_File_test, asd_path_test, con_path_test);
+
+    // Run Ranger on the Training set 
+    // still working on impriving model
+    string ranger_cmd = "/home/rhonda/Downloads/capstone/ranger/cpp_version/build/ranger "
+                "--file connectome_data_train.dat "
+                "--depvarname Diagnosis "
+                "--treetype 1 "
+                "--ntree 3000 "        
+                "--mtry 200 "          
+                "--minbucket 5 "  
+                "--impmeasure 1 "      
+                "--nthreads 16 --verbose";
+
+    cout << "\nStarting Ranger Training..." << endl;
+    int status = system(ranger_cmd.c_str());
+
+    if (status == 0) {
+        cout << "Ranger finished successfully. Check ranger_importance.out for drug target mapping!" << endl;
     }
-
-    return res;
-
-
+    
+    return 0;
 }
 
-int get_cols(string filePath){
+// --- Helper Functions ---
 
+vector<vector<double>> parse_1D(string filePath, int COLS) {
     ifstream file(filePath);
     string line;
-    if(!file.is_open() || !getline(file, line)) return -1;
+    if (!file.is_open()) return {};
     
-    // Determine number of columns
-    istringstream header(line);
-    string token;
-    int COLS = 0;
-    while(header >> token){
-        COLS++;
-    }
+    getline(file, line); // Skip header
+    vector<vector<double>> res(COLS);
 
-    return COLS;
+    while (getline(file, line)) {
+        if (line.empty()) continue;
+        istringstream ss(line);
+        double val;
+        int col_index = 0;
+        while (ss >> val && col_index < COLS) {
+            res[col_index].push_back(val);
+            col_index++;
+        }
+    }
+    return res;
 }
 
-//pearson correlation metric
-double pearson_r(vector<double> col_A, vector<double> col_B){
-    
+int get_cols(string filePath) {
+    ifstream file(filePath);
+    string line;
+    if (!file.is_open() || !getline(file, line)) return -1;
+    istringstream header(line);
+    string token;
+    int count = 0;
+    while (header >> token) count++;
+    return count;
+}
+
+double pearson_r(const vector<double>& col_A, const vector<double>& col_B) {
     int n = col_A.size();
-    if (n == 0 || n != col_B.size()) return 0.0;
+    if(n == 0 || n != (int)col_B.size()) return 0.0;
 
     double sum_A = 0, sum_B = 0, sum_AB = 0, sum_A2 = 0, sum_B2 = 0;
-
     for(int i = 0; i < n; i++) { 
         sum_A += col_A[i];
         sum_B += col_B[i];
@@ -168,14 +150,12 @@ double pearson_r(vector<double> col_A, vector<double> col_B){
 
     double num = (double)n * sum_AB - (sum_A * sum_B);
     double den = sqrt(((double)n * sum_A2 - (sum_A * sum_A)) * ((double)n * sum_B2 - (sum_B * sum_B)));
-
-    if (den == 0) return 0.0; 
-    return num / den;
+    return (den == 0) ? 0.0 : num / den;
 }
 
 void write_row(ofstream &outFile, string file_Path, int target, int COLS){
     vector<vector<double>> matrix = parse_1D(file_Path, COLS);
-    if (matrix.size() < COLS) return;
+    if ((int)matrix.size() < COLS) return;
 
     for (int i = 0; i < COLS; i++) {
         for (int j = i + 1; j < COLS; j++) {
