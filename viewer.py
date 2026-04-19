@@ -13,6 +13,7 @@ from sklearn.model_selection import KFold
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.feature_selection import RFE
 import random_forest_cpp
+from sklearn.metrics import silhouette_samples, silhouette_score
 
 # Path directory for all test and output files
 train_path = './data/ML/Train'
@@ -41,6 +42,10 @@ def main():
     #knn(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca,X_test_pca)
     #random_forest(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca, X_test_pca)
     #kfoldLR()
+    logistic_regression(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca, X_test_pca)
+    kmean(X_train_pca, y_train)
+    knn(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca,X_test_pca)
+    kfoldLR()
     finetuneLR()
 
 
@@ -163,13 +168,22 @@ def logistic_regression(X_train, y_train, X_test, y_test, X_train_scaled, X_test
 
 def kmean(X_train_pca, y_train):
     print('===========================\n K-Means Metrics\n===========================')
-    # K means
+    cluster_range = [2, 3, 4, 5, 6, 7]
+
+    # Get silhouette score for different number of clusters
+    for n_clusters in cluster_range:
+        kmeans = KMeans(n_clusters=n_clusters, random_state=0, n_init="auto")
+        cluster_labels = kmeans.fit_predict(X_train_pca)
+        
+        silhouetter_avg = silhouette_score(X_train_pca, cluster_labels)
+        print(f"For {n_clusters} clusters, silhouette avg score is: {silhouetter_avg}")
+
+    # K means for n=2 (most accurate value for k)
     kmeans = KMeans(n_clusters=2, random_state=0, n_init="auto")
     cluster_labels = kmeans.fit_predict(X_train_pca)
 
     cluster_labels_named = np.array(["ASD" if c == 0 else "Control" for c in cluster_labels])
 
-    print(kmeans)
     sns.scatterplot(x=X_train_pca[:, 0], y=X_train_pca[:, 1], hue=cluster_labels_named, hue_order=["ASD", "Control"])
     plt.title("KMeans (PCA-reduced)")
     plt.xlabel("PCA Component 1")
