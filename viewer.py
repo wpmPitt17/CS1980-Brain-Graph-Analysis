@@ -35,11 +35,11 @@ def main():
 
     X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca, X_test_pca = split(train_rows, train_labels, test_rows, test_labels)
 
-    #logistic_regression(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca, X_test_pca)
+    logistic_regression(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca, X_test_pca)
     #kmean(X_train_pca, y_train)
     #knn(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca,X_test_pca)
-    #kfoldLR()
-    finetuneLR()
+    kfoldLR()
+    #finetuneLR()
 
 
 def check_dirs(out_path, out_asd, out_control):
@@ -151,9 +151,9 @@ def logistic_regression(X_train, y_train, X_test, y_test, X_train_scaled, X_test
     print(f"Logistic Regression Accuracy Scaled: {accuracy_score(y_test, y_pred_scaled):.4f}")
     print(f"Logistic Regression Accuracy PCA: {accuracy_score(y_test, y_pred_pca):.4f}")
 
-    print(f"Logistic Regression Report: {classification_report(y_test, y_pred, target_names=["ASD", "Control"])}")
-    print(f"Logistic Regression Report Scaled: {classification_report(y_test, y_pred_scaled, target_names=["ASD", "Control"])}")
-    print(f"Logistic Regression Report PCA: {classification_report(y_test, y_pred_pca, target_names=["ASD", "Control"])}")
+    print(f"Logistic Regression Report: {classification_report(y_test, y_pred, target_names=['ASD', 'Control'])}")
+    print(f"Logistic Regression Report Scaled: {classification_report(y_test, y_pred_scaled, target_names=['ASD', 'Control'])}")
+    print(f"Logistic Regression Report PCA: {classification_report(y_test, y_pred_pca, target_names=['ASD', 'Control'])}")
 
     print(f"Logistic Regression Confusion: {confusion_matrix(y_test, y_pred)}")
     print(f"Logistic Regression Confusion Scaled: {confusion_matrix(y_test, y_pred_scaled)}")
@@ -181,7 +181,7 @@ def kmean(X_train_pca, y_train):
     print(f"Homogeneity: {homogeneity_score(y_train, cluster_labels):.4f}")
     print(f"Completeness: {completeness_score(y_train, cluster_labels):.4f}")
     print(f"V-measure: {v_measure_score(y_train, cluster_labels):.4f}")
-    print(f"KMeans Report:\n{classification_report(y_train, kmeans_mapped, target_names=["ASD", "Control"])}")
+    print(f"KMeans Report:\n{classification_report(y_train, kmeans_mapped, target_names=['ASD', 'Control'])}")
 
 def knn(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca,X_test_pca):
     print('===========================\n KNN Metrics\n===========================')
@@ -245,6 +245,8 @@ def kfoldLR():
         lrmodel.fit(X_train_scaled, dataY[train])
         y_pred_scaled = lrmodel.predict(X_test_scaled)
         mean_accuracy_scaled += accuracy_score(dataY[test], y_pred_scaled)
+
+    
 
     print(f"{k}-Fold Cross Validation Logistic Regression\nMean Accuracy: {mean_accuracy_norm / k}") 
     print(f"{k}-Fold Cross Validation Scaled Logistic Regression\nMean Accuracy: {mean_accuracy_scaled / k}") 
