@@ -226,8 +226,14 @@ def kfoldLR():
     k = 10
     kfold = KFold(n_splits=k, shuffle=True, random_state=1)
     for train, test in kfold.split(dataX):
-        # Logistic regression and average accuracy
+        # Logistic regression and average accuracy based on rfe
         lrmodel = LogisticRegression(max_iter=2000)
+        rfe = RFE(estimator=lrmodel, n_features_to_select=900, step=400)
+        rfe.fit(dataX[train], dataY[train])
+        y_pred_rfe = rfe.predict(dataX[test])
+        mean_accuracy_rfe += accuracy_score(dataY[test], y_pred_rfe)
+        
+        # Logistic regression and average accuracy
         lrmodel.fit(dataX[train], dataY[train])
         y_pred = lrmodel.predict(dataX[test])
         mean_accuracy_norm += accuracy_score(dataY[test], y_pred)
@@ -236,18 +242,10 @@ def kfoldLR():
         scaler = StandardScaler()
         X_train_scaled = scaler.fit_transform(dataX[train])
         X_test_scaled = scaler.fit_transform(dataX[test])
-
-        lrsmodel = LogisticRegression(max_iter=2000)
-        lrsmodel.fit(X_train_scaled, dataY[train])
+        lrmodel.fit(X_train_scaled, dataY[train])
         y_pred_scaled = lrmodel.predict(X_test_scaled)
         mean_accuracy_scaled += accuracy_score(dataY[test], y_pred_scaled)
-        
-        # Logistic regression and average accuracy based on rfe
-        lrrmodel = LogisticRegression(max_iter=2000)
-        rfe = RFE(estimator=lrrmodel, n_features_to_select=0.75, step=0.5)
-        rfe.fit(dataX[train], dataY[train])
-        y_pred_rfe = rfe.predict(dataX[test])
-        mean_accuracy_rfe += accuracy_score(dataY[test], y_pred_rfe)
+
     print(f"{k}-Fold Cross Validation Logistic Regression\nMean Accuracy: {mean_accuracy_norm / k}") 
     print(f"{k}-Fold Cross Validation Scaled Logistic Regression\nMean Accuracy: {mean_accuracy_scaled / k}") 
     print(f"{k}-Fold Cross Validation Logistic Regression with RFE\nMean Accuracy: {mean_accuracy_rfe / k}") 
