@@ -12,6 +12,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import KFold
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.feature_selection import RFE
+import random_forest_cpp
 from sklearn.metrics import silhouette_samples, silhouette_score
 
 # Path directory for all test and output files
@@ -36,6 +37,11 @@ def main():
 
     X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca, X_test_pca = split(train_rows, train_labels, test_rows, test_labels)
 
+    #logistic_regression(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca, X_test_pca)
+    #kmean(X_train_pca, y_train)
+    #knn(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca,X_test_pca)
+    #random_forest(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca, X_test_pca)
+    #kfoldLR()
     logistic_regression(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca, X_test_pca)
     kmean(X_train_pca, y_train)
     knn(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca,X_test_pca)
@@ -298,6 +304,90 @@ def finetuneLR():
     print(clf_scaled.best_params_)
     print(clf_scaled.best_score_)
     print('===========================')
+
+def random_forest(
+    X_train,
+    y_train,
+    X_test,
+    y_test,
+    X_train_scaled,
+    X_test_scaled,
+    X_train_pca,
+    X_test_pca,
+    asd_path_train='./data/ML/Train/asd',
+    con_path_train='./data/ML/Train/control',
+    asd_path_test='./data/ML/Test/asd',
+    con_path_test='./data/ML/Test/control',
+    output_train_file='connectome_data_train.dat',
+    output_test_file='connectome_data_test.dat',
+    ranger_binary='../ranger/cpp_version/build/ranger',
+    ntree=3000,
+    mtry=200,
+    minbucket=5,
+    splitrule=7,
+    nthreads=16,
+    verbose=True,
+):
+    _ = (X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca, X_test_pca)
+
+    result = random_forest_cpp.run_random_forest(
+        asd_path_train=asd_path_train,
+        con_path_train=con_path_train,
+        asd_path_test=asd_path_test,
+        con_path_test=con_path_test,
+        output_train_file=output_train_file,
+        output_test_file=output_test_file,
+        ranger_binary=ranger_binary,
+        ntree=ntree,
+        mtry=mtry,
+        minbucket=minbucket,
+        splitrule=splitrule,
+        nthreads=nthreads,
+        verbose=verbose,
+    )
+
+    metrics = {
+        'train_data_file': result.train_data_file,
+        'test_data_file': result.test_data_file,
+        'forest_file': result.forest_file,
+        'prediction_file': result.prediction_file,
+        'ranger_command': result.ranger_command,
+        'ranger_predict_command': result.ranger_predict_command,
+        'ranger_exit_code': result.ranger_exit_code,
+        'ranger_predict_exit_code': result.ranger_predict_exit_code,
+        'ranger_succeeded': result.ranger_succeeded,
+        'ranger_predict_succeeded': result.ranger_predict_succeeded,
+        'test_accuracy': result.test_accuracy,
+        'test_sample_count': result.test_sample_count,
+        'test_misclassifications': result.test_misclassifications,
+        'true_positive': result.true_positive,
+        'true_negative': result.true_negative,
+        'false_positive': result.false_positive,
+        'false_negative': result.false_negative,
+        'asd_precision': result.asd_precision,
+        'asd_recall': result.asd_recall,
+        'asd_f1': result.asd_f1,
+        'control_precision': result.control_precision,
+        'control_recall': result.control_recall,
+        'control_f1': result.control_f1,
+    }
+
+    if metrics['ranger_predict_succeeded']:
+        print('===========================')
+        print('Random Forest Test Metrics')
+        print('===========================')
+        print(f"Accuracy: {metrics['test_accuracy']:.4f}")
+        print(f"Misclassifications: {metrics['test_misclassifications']} / {metrics['test_sample_count']}")
+        print(f"Confusion Matrix (ASD=1, Control=0): TP={metrics['true_positive']} TN={metrics['true_negative']} FP={metrics['false_positive']} FN={metrics['false_negative']}")
+        print(f"ASD Precision: {metrics['asd_precision']:.4f}")
+        print(f"ASD Recall: {metrics['asd_recall']:.4f}")
+        print(f"ASD F1: {metrics['asd_f1']:.4f}")
+        print(f"Control Precision: {metrics['control_precision']:.4f}")
+        print(f"Control Recall: {metrics['control_recall']:.4f}")
+        print(f"Control F1: {metrics['control_f1']:.4f}")
+        print('===========================')
+
+    return metrics
 
 def collect_all_subjects():
     # all_data[0] stores correlations, all_data[1] stores labels
