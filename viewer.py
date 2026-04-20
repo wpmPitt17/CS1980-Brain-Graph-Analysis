@@ -40,13 +40,13 @@ def main():
     #logistic_regression(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca, X_test_pca)
     #kmean(X_train_pca, y_train)
     #knn(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca,X_test_pca)
-    #random_forest(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca, X_test_pca)
+    random_forest(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca, X_test_pca)
     #kfoldLR()
-    logistic_regression(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca, X_test_pca)
-    kmean(X_train_pca, y_train)
-    knn(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca,X_test_pca)
-    kfoldLR()
-    finetuneLR()
+    #logistic_regression(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca, X_test_pca)
+    #kmean(X_train_pca, y_train)
+    #knn(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca,X_test_pca)
+    #kfoldLR()
+    #finetuneLR()
 
 
 def check_dirs(out_path, out_asd, out_control):
@@ -320,8 +320,8 @@ def random_forest(
     output_test_file='connectome_data_test.dat',
     ranger_binary='../ranger/cpp_version/build/ranger',
     ntree=3000,
-    mtry=200,
-    minbucket=5,
+    mtry=800,
+    minbucket=3,
     splitrule=7,
     nthreads=16,
     verbose=True,
