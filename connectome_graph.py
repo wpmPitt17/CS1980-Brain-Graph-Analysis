@@ -1,9 +1,9 @@
 # connectome_graph.py
 # Author: Rhonda Ojongmboh
 #
-# Generates an annotated connectome network graph from Ranger importance scores
-# using Cytoscape via py4cytoscape. Maps ROI indices to Harvard-Oxford atlas
-# region names and exports the graph as a PDF.
+# Generates a connectome network graph from Ranger importance scores
+# using Cytoscape via py4cytoscape. ROIs are treated as Craddock parcel
+# indices and exported as numeric labels.
 #
 # Requires: Cytoscape desktop running locally, py4cytoscape, pandas
 #
@@ -18,97 +18,9 @@ import pandas as pd
 import py4cytoscape as p4c
 
 # ------------------------------------------------------------
-# Harvard-Oxford atlas (rois_ho, 112 regions)
-# ROI index -> anatomical region name
-# ------------------------------------------------------------
-HO_LABELS = {
-    0:  'Frontal Pole',                         1:  'Insular Cortex',
-    2:  'Superior Frontal Gyrus',               3:  'Middle Frontal Gyrus',
-    4:  'Inf. Frontal Gyrus (tri)',              5:  'Inf. Frontal Gyrus (oper)',
-    6:  'Precentral Gyrus (L)',                  7:  'Precentral Gyrus',
-    8:  'Temporal Pole',                         9:  'Sup. Temporal Gyrus (ant)',
-    10: 'Sup. Temporal Gyrus (post)',            11: 'Mid. Temporal Gyrus (ant)',
-    12: 'Mid. Temporal Gyrus (post)',            13: 'Mid. Temporal Gyrus (tO)',
-    14: 'Inf. Temporal Gyrus (ant)',             15: 'Inf. Temporal Gyrus (post)',
-    16: 'Inf. Temporal Gyrus (tO)',              17: 'Postcentral Gyrus',
-    18: 'Sup. Parietal Lobule',                  19: 'Supramarginal Gyrus (ant)',
-    20: 'Supramarginal Gyrus (post)',            21: 'Angular Gyrus',
-    22: 'Lateral Occipital (sup)',               23: 'Lateral Occipital (inf)',
-    24: 'Intracalcarine Cortex',                 25: 'Frontal Medial Cortex',
-    26: 'Juxtapositional Lobule',                27: 'Subcallosal Cortex',
-    28: 'Paracingulate Gyrus',                   29: 'Cingulate Gyrus (ant)',
-    30: 'Cingulate Gyrus (post)',                31: 'Precuneous Cortex',
-    32: 'Cuneal Cortex',                         33: 'Frontal Orbital Cortex',
-    34: 'Parahippocampal Gyrus (ant)',           35: 'Parahippocampal Gyrus (post)',
-    36: 'Lingual Gyrus',                         37: 'Temporal Fusiform (ant)',
-    38: 'Temporal Fusiform (post)',              39: 'Temporal Occipital Fusiform',
-    40: 'Occipital Fusiform Gyrus',              41: 'Frontal Operculum',
-    42: 'Central Opercular Cortex',              43: 'Parietal Operculum',
-    44: 'Planum Polare',                         45: "Heschl's Gyrus",
-    46: 'Planum Temporale',                      47: 'Supracalcarine Cortex',
-    48: 'Occipital Pole',                        49: 'L Thalamus',
-    50: 'L Caudate',                             51: 'L Putamen',
-    52: 'L Pallidum',                            53: 'Brain-Stem',
-    54: 'L Hippocampus',                         55: 'L Amygdala',
-    56: 'L Accumbens',                           57: 'R Thalamus',
-    58: 'R Caudate',                             59: 'R Putamen',
-    60: 'R Pallidum',                            61: 'R Hippocampus',
-    62: 'R Amygdala',                            63: 'R Accumbens',
-    64: 'Frontal Pole (R)',                      65: 'Insular Cortex (R)',
-    66: 'Sup. Frontal Gyrus (R)',                67: 'Mid. Frontal Gyrus (R)',
-    68: 'Inf. Frontal Gyrus tri (R)',            69: 'Inf. Frontal Gyrus oper (R)',
-    70: 'Precentral Gyrus (R)',                  71: 'Temporal Pole (R)',
-    72: 'Sup. Temporal Gyrus ant (R)',           73: 'Sup. Temporal Gyrus post (R)',
-    74: 'Mid. Temporal Gyrus ant (R)',           75: 'Mid. Temporal Gyrus post (R)',
-    76: 'Mid. Temporal Gyrus tO (R)',            77: 'Inf. Temporal Gyrus ant (R)',
-    78: 'Inf. Temporal Gyrus post (R)',          79: 'Inf. Temporal Gyrus tO (R)',
-    80: 'Postcentral Gyrus (R)',                 81: 'Sup. Parietal Lobule (R)',
-    82: 'Supramarginal Gyrus ant (R)',           83: 'Supramarginal Gyrus post (R)',
-    84: 'Angular Gyrus (R)',                     85: 'Lateral Occipital sup (R)',
-    86: 'Lateral Occipital inf (R)',             87: 'Intracalcarine Cortex (R)',
-    88: 'Frontal Medial Cortex (R)',             89: 'Juxtapositional Lobule (R)',
-    90: 'Subcallosal Cortex (R)',                91: 'Paracingulate Gyrus (R)',
-    92: 'Cingulate Gyrus ant (R)',               93: 'Cingulate Gyrus post (R)',
-    94: 'Precuneous Cortex (R)',                 95: 'Cuneal Cortex (R)',
-    96: 'Frontal Orbital Cortex (R)',            97: 'Parahippocampal Gyrus ant (R)',
-    98: 'Parahippocampal Gyrus post (R)',        99: 'Lingual Gyrus (R)',
-    100:'Temporal Fusiform ant (R)',             101:'Temporal Fusiform post (R)',
-    102:'Temporal Occipital Fusiform (R)',       103:'Occipital Fusiform (R)',
-    104:'Frontal Operculum (R)',                 105:'Central Opercular (R)',
-    106:'Parietal Operculum (R)',                107:'Planum Polare (R)',
-    108:"Heschl's Gyrus (R)",                   109:'Planum Temporale (R)',
-    110:'Supracalcarine Cortex (R)',             111:'Occipital Pole (R)',
-}
-
-LOBE_MAP = {
-    'Frontal':     [2,3,4,5,6,7,25,27,28,29,33,41,64,66,67,68,69,70,88,90,91,96,104],
-    'Temporal':    [8,9,10,11,12,13,14,15,16,37,38,39,44,45,46,71,72,73,74,75,76,77,78,79,100,101,102,107,108,109],
-    'Parietal':    [17,18,19,20,21,43,80,81,82,83,84,105,106],
-    'Occipital':   [22,23,24,32,36,40,47,48,85,86,87,95,99,103,110,111],
-    'Cingulate':   [29,30,31,92,93,94],
-    'Subcortical': [34,35,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,97,98],
-}
-
-LOBE_COLORS = {
-    'Frontal':     '#4A90D9',
-    'Temporal':    '#E07040',
-    'Parietal':    '#4CAF7D',
-    'Occipital':   '#C9A227',
-    'Cingulate':   '#9B72CF',
-    'Subcortical': '#E05585',
-    'Other':       '#999999',
-}
-
-def get_lobe(roi):
-    for lobe, rois in LOBE_MAP.items():
-        if roi in rois:
-            return lobe
-    return 'Other'
-
 def get_label(roi):
-    """Full node label: ROI index + region name."""
-    name = HO_LABELS.get(roi, 'Unknown')
-    return f"ROI{roi}\n{name}"
+    """Node label for Craddock parcels."""
+    return f"ROI{roi}"
 
 # ------------------------------------------------------------
 # Load importance file
@@ -141,7 +53,7 @@ def load_importance(filepath, top_n):
 def build_tables(edges_df):
     """
     Builds node and edge DataFrames for py4cytoscape.
-    Nodes: id, label, lobe, lobe_color, degree, total_importance
+    Nodes: id, label, node_color, degree, total_importance
     Edges: source, target, importance, width (scaled 1-10)
     """
     node_ids = pd.unique(edges_df[['source', 'target']].values.ravel())
@@ -155,12 +67,10 @@ def build_tables(edges_df):
 
     nodes = []
     for roi in node_ids:
-        lobe = get_lobe(roi)
         nodes.append({
             'id':               str(roi),
             'label':            get_label(roi),
-            'lobe':             lobe,
-            'lobe_color':       LOBE_COLORS[lobe],
+            'node_color':       '#4A90D9',
             'degree':           degree.get(roi, 0),
             'total_importance': round(total_imp.get(roi, 0.0), 4),
         })
@@ -190,9 +100,9 @@ def apply_style(style_name):
     # Node label
     p4c.set_node_label_mapping('label', style_name=style_name)
 
-    # Node color: passthrough from lobe_color column
+    # Node color: passthrough from node_color column
     p4c.set_node_color_mapping(
-        table_column='lobe_color',
+        table_column='node_color',
         mapping_type='passthrough',
         style_name=style_name
     )
@@ -294,11 +204,11 @@ def main():
 
     # Summary of top hub regions
     top_hubs = nodes_df.sort_values('total_importance', ascending=False).head(5)
-    print("\nTop 5 hub regions by aggregated importance:")
+    print("\nTop 5 hub ROIs by aggregated importance:")
     for _, row in top_hubs.iterrows():
         roi = int(row['id'])
-        print(f"  ROI{roi:>3} | {row['lobe']:>11} | degree={row['degree']} "
-              f"| score={row['total_importance']:.4f} | {HO_LABELS.get(roi, 'Unknown')}")
+        print(f"  ROI{roi:>3} | degree={row['degree']} "
+              f"| score={row['total_importance']:.4f}")
 
 
 if __name__ == '__main__':
