@@ -9,15 +9,19 @@ from sklearn.metrics import ConfusionMatrixDisplay, accuracy_score, confusion_ma
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import KFold
+from sklearn.model_selection import KFold, cross_validate
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.feature_selection import RFE
-import random_forest_cpp
+from sklearn.pipeline import Pipeline
+#import random_forest_cpp
 from sklearn.metrics import silhouette_samples, silhouette_score
+
+"""Combined Script for Logistic Regression, K-NN, and K-Means Classifier Models"""
 
 # Path directory for all test and output files
 train_path = './data/ML/Train'
 test_path = './data/ML/Test'
+val_path = './data/ML/Eval'
 subject_path = 'asd'
 control_path = 'control'
 
@@ -30,23 +34,21 @@ def main():
     train_labels = []
     test_rows = []
     test_labels = []
+    val_rows = []
+    val_labels = []
         
     check_dirs(out_path, out_asd, out_control)
 
-    convert_to_correlation(train_rows, train_labels, test_rows, test_labels)
+    convert_to_correlation(train_rows, train_labels, test_rows, test_labels, val_rows, val_labels)
 
-    X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca, X_test_pca = split(train_rows, train_labels, test_rows, test_labels)
+    X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca, X_test_pca, X_val, y_val, X_val_scaled = split(train_rows, train_labels, test_rows, test_labels, val_rows, val_labels)
 
+    #random_forest(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca, X_test_pca)
     #logistic_regression(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca, X_test_pca)
     #kmean(X_train_pca, y_train)
-    #knn(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca,X_test_pca)
-    #random_forest(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca, X_test_pca)
-    #kfoldLR()
-    logistic_regression(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca, X_test_pca)
-    kmean(X_train_pca, y_train)
     knn(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca,X_test_pca)
-    kfoldLR()
-    finetuneLR()
+    #kfoldLR(X_test, X_test_scaled, y_test)
+    #finetuneLR(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_val, y_val, X_val_scaled)
 
 
 def check_dirs(out_path, out_asd, out_control):
@@ -59,7 +61,7 @@ def check_dirs(out_path, out_asd, out_control):
     if not os.path.exists(os.path.join(out_path, out_control)):
         os.makedirs(os.path.join(out_path, out_control), exist_ok=True)
 
-def convert_to_correlation(train_rows, train_labels, test_rows, test_labels):
+def convert_to_correlation(train_rows, train_labels, test_rows, test_labels, val_rows, val_labels):
     # DX_GROUP 0 = Autism, 1 = Control
     # For DX_GROUP 1
     for filename in os.listdir(os.path.join(train_path, subject_path)):
@@ -112,16 +114,44 @@ def convert_to_correlation(train_rows, train_labels, test_rows, test_labels):
             test_rows.append(upper_triangle)
             test_labels.append(1)
             # new_corr.to_csv(os.path.join(out_path, out_control, filename))
+            
+    for filename in os.listdir(os.path.join(val_path, subject_path)):
+        file_path = os.path.join(val_path, subject_path, filename)
 
-def split(train_rows, train_labels, test_rows, test_labels):
+        with open(file_path, 'r') as f:
+            df = pd.read_csv(f, sep=r'\s+') 
+            new_corr = df.corr(method='spearman')
+            # Flatten correlation to 1d using upper triangle of matrix
+            upper_triangle = new_corr.values[np.triu_indices(200, k=1)]
+            val_rows.append(upper_triangle)
+            val_labels.append(0)
+            # new_corr.to_csv(os.path.join(out_path, out_asd, filename))
+            
+    for filename in os.listdir(os.path.join(val_path, control_path)):
+        file_path = os.path.join(val_path, control_path, filename)
+
+        with open(file_path, 'r') as f:
+            df = pd.read_csv(f, sep=r'\s+') 
+            new_corr = df.corr(method='spearman')
+            # Flatten correlation to 1d using upper triangle of matrix
+            upper_triangle = new_corr.values[np.triu_indices(200, k=1)]
+            val_rows.append(upper_triangle)
+            val_labels.append(1)
+            # new_corr.to_csv(os.path.join(out_path, out_asd, filename))
+
+def split(train_rows, train_labels, test_rows, test_labels, val_rows, val_labels):
     X_train = np.array(train_rows) 
     y_train = np.array(train_labels)
 
     X_test = np.array(test_rows) 
     y_test = np.array(test_labels)
+    
+    X_val = np.array(val_rows)
+    y_val = np.array(val_labels)
 
     X_test = np.nan_to_num(X_test)
     X_train = np.nan_to_num(X_train)
+    X_val = np.nan_to_num(X_val)
 
     # Scaler for standardizing features
     scaler = StandardScaler()
@@ -130,11 +160,12 @@ def split(train_rows, train_labels, test_rows, test_labels):
     # Reduce dimensionality of data for more efficient processing and reduce noise
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
+    X_val_scaled = scaler.transform(X_val)
 
     X_train_pca = pca.fit_transform(X_train_scaled)
     X_test_pca = pca.transform(X_test_scaled)
 
-    return X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca,X_test_pca
+    return X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca,X_test_pca, X_val,y_val,X_val_scaled
 
 def logistic_regression(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca, X_test_pca):
     print('===========================\n Logistic Regression Metrics\n===========================')
@@ -226,7 +257,7 @@ def knn(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train
         print(f"KNN PCA (k={k}) Report:\n{classification_report(y_test, y_pred_knn_pca, target_names=['ASD', 'Control'])}")
 
 
-def kfoldLR():
+def kfoldLR(X_test, X_test_scaled, y_test):
     print('===========================\nK-Fold Logistic Regression Metrics\n===========================')
     all_data = collect_all_subjects() 
     
@@ -262,47 +293,43 @@ def kfoldLR():
         y_pred_scaled = lrmodel.predict(X_test_scaled)
         mean_accuracy_scaled += accuracy_score(dataY[test], y_pred_scaled)
 
+    # Define metrics and perform cross-validation
+    results = cross_validate(LogisticRegression(), X_test, y_test, cv=kfold, scoring=['precision', 'recall', 'f1'])
     
+    lrmodel = LogisticRegression(max_iter=2000)
+    rfe = RFE(estimator=lrmodel, n_features_to_select=900, step=400)
+    pipeline = Pipeline([('feature_selection', rfe), ('classification', lrmodel)]) 
+    rferesults = results = cross_validate(pipeline, X_test, y_test, cv=kfold, scoring=['precision', 'recall', 'f1'])
+    
+    # Output average scores
+    print(f"Average Precision: {results['test_precision'].mean():.4f}")
+    print(f"Average Recall:    {results['test_recall'].mean():.4f}")
+    print(f"Average F1 Score:  {results['test_f1'].mean():.4f}")
 
     print(f"{k}-Fold Cross Validation Logistic Regression\nMean Accuracy: {mean_accuracy_norm / k}") 
     print(f"{k}-Fold Cross Validation Scaled Logistic Regression\nMean Accuracy: {mean_accuracy_scaled / k}") 
+    print(f"Average Precision: {rferesults['test_precision'].mean():.4f}")
+    print(f"Average Recall:    {rferesults['test_recall'].mean():.4f}")
+    print(f"Average F1 Score:  {rferesults['test_f1'].mean():.4f}")
     print(f"{k}-Fold Cross Validation Logistic Regression with RFE\nMean Accuracy: {mean_accuracy_rfe / k}") 
 
     print('===========================')
 
-def finetuneLR():
+def finetuneLR(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_val, y_val, X_val_scaled):
     print('===========================\nParameter Fine-Tuning Logistic Regression Metrics\n===========================')
-    all_data = collect_all_subjects()
 
-    dataX = np.array(all_data[0])
-    dataY = np.array(all_data[1])
-
-    dataX = np.nan_to_num(dataX)
-
-    mean_accuracy_norm = 0
-    mean_accuracy_scaled = 0
-
-    param_grid = {'C' : [0.001,0.01,0.1,1,10,100,1000]}
+    param_grid = {'C' : [0.001,0.01,0.1,1,10,100,1000], 'penalty' : ['l1','l2']}
 
     clf = GridSearchCV(LogisticRegression(max_iter=2000), param_grid)
-    clf.fit(dataX,dataY)
-
-    # Logistic regression and average accuracy based on scaled values
-    scaler = StandardScaler()
-    X_train_scaled = scaler.fit_transform(dataX)
-
+    clf.fit(X_train,y_train)
 
     clf_scaled = GridSearchCV(LogisticRegression(max_iter=2000),param_grid)
-    clf_scaled.fit(X_train_scaled,dataY)
+    clf_scaled.fit(X_train_scaled,y_train)
 
     print("Logistic Regression with Grid Search Parameter Optimization")
-    print(clf.best_estimator_)
-    print(clf.best_params_)
-    print(clf.best_score_)
+    print(clf.best_estimator_.score(X_test,y_test))
     print("Logistic Regression with Grid Search Parameter Optimization and Scaled")
-    print(clf_scaled.best_estimator_)
-    print(clf_scaled.best_params_)
-    print(clf_scaled.best_score_)
+    print(clf_scaled.best_estimator_.score(X_test_scaled,y_test))
     print('===========================')
 
 def random_forest(
