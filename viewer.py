@@ -43,17 +43,41 @@ def main():
 
     X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca, X_test_pca, X_val, y_val, X_val_scaled = split(train_rows, train_labels, test_rows, test_labels, val_rows, val_labels)
 
-    #random_forest(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca, X_test_pca)
-    #logistic_regression(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca, X_test_pca)
-    #kmean(X_train_pca, y_train)
-    #knn(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca,X_test_pca)
-    random_forest(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca, X_test_pca)
-    #kfoldLR()
-    #logistic_regression(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca, X_test_pca)
-    #kmean(X_train_pca, y_train)
-    #knn(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca,X_test_pca)
-    #kfoldLR()
-    #finetuneLR()
+    while (True):
+        print("===========================")
+        print("Brain Connectome Training:")
+        print("Model Training Options")
+        print("1 - Logistic Regression (Basic, Scaled, PCA)")
+        print("2 - Random Forest")
+        print("3 - Logistic Regression (K-Fold)")
+        print("4 - Logistic Regression (Parameter Finetuning)")
+        print("5 - KNN")
+        print("6 - K-MEANS")
+        print("7 - SVM")
+        print("0 - Exit")
+        print("===========================")
+        
+        selection = int(input("Select Option >> "))
+        
+        match selection:
+            case 1:
+                logistic_regression(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca, X_test_pca)
+            case 2:
+                random_forest(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca, X_test_pca)
+            case 3:
+                kfoldLR(X_test,X_test_scaled,y_test)
+            case 4:
+                finetuneLR(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_val, y_val, X_val_scaled)
+            case 5:
+                knn(X_train, y_train, X_test, y_test, X_train_scaled, X_test_scaled, X_train_pca,X_test_pca)
+            case 6:
+                kmean(X_train_pca, y_train)
+            case 7:
+                print("Coming Soon!")
+            case 0:
+                break
+            case _:
+                print("Input Error Try Again")
 
 
 def check_dirs(out_path, out_asd, out_control):
