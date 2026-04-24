@@ -57,7 +57,11 @@ def main():
         print("0 - Exit")
         print("===========================")
         
-        selection = int(input("Select Option >> "))
+        selection = -1
+        try:
+            selection = int(input("Select Option >> "))
+        except:
+            print("Invalid Input Try Again")
         
         match selection:
             case 1:
